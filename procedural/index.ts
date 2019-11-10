@@ -1,133 +1,73 @@
-// Задача: грани кубика => график бросков
-// Array<number>[6] => chart.js
+// Задача: грани кубика => график бросков для 6-24
+// Array<number>(6) => chart.js
 
-function rand(n: number): number {
-  return Math.floor(Math.random() * n);
+interface ChartData {
+  type: "bar";
+  data: {
+    datasets: {
+      data: number[]; // Array<number>
+      label: string;
+      backgroundColor: string[];
+      borderColor: string[];
+    }[];
+    labels: string[];
+  };
 }
-
-function rollFlat(): number {
-  const result = [1, 2, 3][rand(3)];
-  return result;
-}
-
-function rollSkewed(): number {
-  return [1, 2, 2, 2, 2, 3][rand(6)];
-}
-
-const morales: number[] = new Array(18).fill(null).map((_, i) => i + 6); //6-24
-
-function getRollsToFail(startMorale: number, roll: () => number): number {
-  let result: number = 0;
-  let morale: number = startMorale;
-  while (morale > 0) {
-    morale -= roll();
-    result++;
-  }
-  return result;
+interface GroupedResults {
+  [rollsToFail: number]: number;
 }
 
 const numberOfTries = 1000;
+const morales: number[] = new Array(18).fill(null).map((_, i) => i + 6); // 6-24
+const die = [1, 1, 2, 2, 3, 3];
+const roll = () => die[Math.floor(Math.random() * 6)];
 
-function getRollsToFailSkewed(startMorale: number): number[] {
-  return new Array(numberOfTries)
-    .fill(null)
-    .map(() => getRollsToFail(startMorale, rollSkewed));
-}
-
-function getRollsToFailFlat(startMorale: number): number[] {
-  return new Array(numberOfTries)
-    .fill(null)
-    .map(() => getRollsToFail(startMorale, rollFlat));
-}
-
-type Results = { [startMorale: number]: number[] };
-
-function getResults(getRolls: (startMorale: number) => number[]): Results {
-  return morales.reduce((acc, startMorale, index) => {
-    return {
-      ...acc,
-      [startMorale]: getRolls(startMorale)
-    };
-  }, {});
-}
-
-function getResultsFlat(): Results {
-  return getResults(getRollsToFailFlat);
-}
-
-function getResultsSkewed(): Results {
-  return getResults(getRollsToFailSkewed);
-}
-
-type Report = { [startMorale: number]: { [rolls: number]: number } };
-
-function getReport(getResults: () => Results): Report {
-  const results: Results = getResults();
-  return Object.keys(results)
-    .map(Number)
-    .reduce((acc, startMorale: number, index: number) => {
-      return {
-        ...acc,
-        [startMorale]: results[startMorale].reduce(
-          (ac, rolls: number, index: number) => {
-            if (Object.keys(ac).includes(rolls.toString())) {
-              ac[rolls]++;
-            } else {
-              ac[rolls] = 1;
-            }
-            return ac;
-          },
-          {}
-        )
-      };
-    }, {});
-}
-
-const reportFlat = getReport(getResultsFlat);
-const reportSkewed = getReport(getResultsSkewed);
-console.log(reportFlat);
-console.log(reportSkewed);
-
-const Chart = window["Chart"];
-
-const container: HTMLElement = document.getElementById("container");
-
-Object.keys(reportFlat).forEach((startMorale: string) => {
-  const header: HTMLHeadingElement = document.createElement("h2");
-  header.innerText = "Мораль: " + startMorale;
-  const canvas: HTMLCanvasElement = document.createElement("canvas");
-
-  container.appendChild(header);
-  container.appendChild(canvas);
-
-  const dataFlat: number[] = Object.keys(reportFlat[startMorale]).map(
-    key => reportFlat[startMorale][key]
+for (let totalMorale = 6; totalMorale <= 24; totalMorale++) {
+  const rollsToFail: number[] = [];
+  for (let tryNumber = 0; tryNumber < numberOfTries; tryNumber++) {
+    let rollToFail: number = 0;
+    let morale: number = totalMorale;
+    while (morale > 0) {
+      morale -= roll();
+      rollToFail++;
+    }
+    rollsToFail.push(rollToFail);
+  }
+  const rollsToFailGrouped: GroupedResults = rollsToFail.reduce(
+    (acc, rollsToFail, index) => {
+      const key = String(rollsToFail);
+      if (acc[rollsToFail]) {
+        acc[key]++;
+      } else {
+        acc[key] = 1;
+      }
+      return acc;
+    },
+    {}
   );
-  const dataSkewed: number[] = Object.keys(reportSkewed[startMorale]).map(
-    key => reportSkewed[startMorale][key]
+  const labels: string[] = Object.keys(rollsToFailGrouped).sort((key: string) =>
+    Number(key)
   );
-  const labels: string[] = Object.keys(reportFlat[startMorale]);
-
-  console.log(dataFlat, labels);
-
-  const chart = new Chart(canvas.getContext("2d"), {
+  const chartData: ChartData = {
     type: "bar",
     data: {
       datasets: [
         {
-          data: dataFlat, // Array<number>
+          data: labels.map((label: string) => rollsToFailGrouped[label]), // Array<number>
           label: "flat",
           backgroundColor: labels.map(() => "rgba(255, 99, 132, 0.2)"),
           borderColor: labels.map(() => "rgba(255,99,132,1)")
-        },
-        {
-          data: dataSkewed, // Array<number>
-          label: "skewed",
-          backgroundColor: labels.map(() => "rgba(54, 162, 235, 0.2)"),
-          borderColor: labels.map(() => "rgba(54, 162, 235)")
         }
       ],
       labels
     }
-  });
-});
+  };
+  const container: HTMLElement = document.getElementById("container");
+  const header: HTMLHeadingElement = document.createElement("h2");
+  header.innerText = "Мораль: " + totalMorale;
+  const canvas: HTMLCanvasElement = document.createElement("canvas");
+  container.appendChild(header);
+  container.appendChild(canvas);
+  const Chart = window["Chart"];
+  const chart = new Chart(canvas.getContext("2d"), chartData);
+}

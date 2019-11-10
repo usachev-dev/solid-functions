@@ -2,42 +2,31 @@
 // Array<number>(6) => chart.js
 var numberOfTries = 1000;
 var morales = new Array(18).fill(null).map(function (_, i) { return i + 6; }); // 6-24
-function getRoller(die) {
-    return function () { return die[Math.floor(Math.random() * 6)]; };
-}
-function getRollsToFail(totalMorale, roll) {
-    var rollsToFail = [];
-    for (var tryNumber = 0; tryNumber < numberOfTries; tryNumber++) {
-        var rollToFail = 0;
-        var morale = totalMorale;
-        while (morale > 0) {
-            morale -= roll();
-            rollToFail++;
+function onParamsChange(die) {
+    var roll = function () { return die[Math.floor(Math.random() * 6)]; };
+    var chartDatas = [];
+    var _loop_2 = function (totalMorale) {
+        var rollsToFail = [];
+        for (var tryNumber = 0; tryNumber < numberOfTries; tryNumber++) {
+            var rollToFail = 0;
+            var morale = totalMorale;
+            while (morale > 0) {
+                morale -= roll();
+                rollToFail++;
+            }
+            rollsToFail.push(rollToFail);
         }
-        rollsToFail.push(rollToFail);
-    }
-    return rollsToFail;
-}
-function getGroupedRolls(rollsToFail) {
-    return rollsToFail.reduce(function (acc, rollsToFail, index) {
-        var key = String(rollsToFail);
-        if (acc[rollsToFail]) {
-            acc[key]++;
-        }
-        else {
-            acc[key] = 1;
-        }
-        return acc;
-    }, {});
-}
-function getLabels(rollsToFailGrouped) {
-    return Object.keys(rollsToFailGrouped).sort(function (key) { return Number(key); });
-}
-function getChartDatas(roll) {
-    return morales.map(function (totalMorale) {
-        var rollsToFail = getRollsToFail(totalMorale, roll);
-        var rollsToFailGrouped = getGroupedRolls(rollsToFail);
-        var labels = getLabels(rollsToFailGrouped);
+        var rollsToFailGrouped = rollsToFail.reduce(function (acc, rollsToFail, index) {
+            var key = String(rollsToFail);
+            if (acc[rollsToFail]) {
+                acc[key]++;
+            }
+            else {
+                acc[key] = 1;
+            }
+            return acc;
+        }, {});
+        var labels = Object.keys(rollsToFailGrouped).sort(function (key) { return Number(key); });
         var chartData = {
             type: "bar",
             data: {
@@ -52,10 +41,11 @@ function getChartDatas(roll) {
                 labels: labels
             }
         };
-        return chartData;
-    });
-}
-function drawCharts(chartDatas) {
+        chartDatas.push(chartData);
+    };
+    for (var totalMorale = 6; totalMorale <= 24; totalMorale++) {
+        _loop_2(totalMorale);
+    }
     var oldContainer = document.getElementById("container");
     if (oldContainer) {
         document.body.removeChild(oldContainer);
@@ -73,15 +63,11 @@ function drawCharts(chartDatas) {
     });
     document.body.appendChild(container);
 }
-function onParamsChange(die) {
-    var roller = getRoller(die);
-    var chartDatas = getChartDatas(roller);
-    drawCharts(chartDatas);
-}
 var faces = [1, 1, 2, 2, 3, 3];
 onParamsChange(faces);
 var _loop_1 = function (face) {
     var input = document.getElementById("face" + face);
+    console.log(face, "face" + face, input);
     input.addEventListener("input", function (event) { return onInputChange(event, face); });
 };
 for (var face = 0; face <= 5; face++) {
