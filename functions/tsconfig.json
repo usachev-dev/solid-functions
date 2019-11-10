@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es5",
+    "lib": ["dom", "es2015", "es2016", "es5", "es6"]
+  },
+  "files": ["./index.ts"]
+}
