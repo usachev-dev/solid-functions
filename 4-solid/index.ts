@@ -61,8 +61,9 @@ function getLabels(rollsToFailGrouped: GroupedResults): string[] {
 
 function getChartDatas(roll: Roll): ChartData[] {
   return morales.map((totalMorale: number) => {
-    const rollsToFail = getRollsToFail(totalMorale, roll);
-    const rollsToFailGrouped: GroupedResults = getGroupedRolls(rollsToFail);
+    const rollsToFailGrouped: GroupedResults = getGroupedRolls(
+      getRollsToFail(totalMorale, roll)
+    );
     const labels: string[] = getLabels(rollsToFailGrouped);
     const chartData: ChartData = {
       type: "bar",
@@ -82,21 +83,38 @@ function getChartDatas(roll: Roll): ChartData[] {
   });
 }
 
-function main(faces: Faces) {
-  function drawCharts(chartDatas: ChartData[]): void {
-    const container: HTMLElement = document.createElement("div");
-    container.id = "container";
-    const Chart = window["Chart"];
-    chartDatas.forEach((chartData: ChartData, index: number) => {
-      const header: HTMLHeadingElement = document.createElement("h2");
-      header.innerText = "Мораль: " + morales[index];
-      const canvas: HTMLCanvasElement = document.createElement("canvas");
-      container.appendChild(header);
-      container.appendChild(canvas);
-      const chart = new Chart(canvas.getContext("2d"), chartData);
-    });
+function createHeader(totalMorale: number): HTMLHeadingElement {
+  const heading: HTMLHeadingElement = document.createElement("h2");
+  heading.innerText = `Мораль: ${totalMorale}`;
+  return heading;
+}
 
-    const oldContainer: HTMLElement = document.getElementById("container");
+function getContainer(): HTMLElement {
+  return document.getElementById("container");
+}
+
+function createCanvas(): HTMLCanvasElement {
+  return document.createElement("canvas");
+}
+
+function createContainer(chartDatas: ChartData[]): HTMLDivElement {
+  const Chart = window["Chart"];
+  const container: HTMLDivElement = document.createElement("div");
+  container.id = "container";
+  chartDatas.forEach((chartData: ChartData, index: number) => {
+    const header = createHeader(morales[index]);
+    const canvas: HTMLCanvasElement = createCanvas();
+    container.appendChild(header);
+    container.appendChild(canvas);
+    const chart = new Chart(canvas.getContext("2d"), chartData);
+  });
+  return container;
+}
+
+function main(faces: Faces): void {
+  function renderContainer(chartDatas: ChartData[]): void {
+    const container: HTMLDivElement = createContainer(chartDatas);
+    const oldContainer: HTMLElement = getContainer();
     if (oldContainer) {
       document.body.removeChild(oldContainer);
     }
@@ -108,13 +126,11 @@ function main(faces: Faces) {
     onParamsChange(faces);
   }
   function onParamsChange(die: Faces): void {
-    const roller = getRoller(die);
-    const chartDatas: ChartData[] = getChartDatas(roller);
-    drawCharts(chartDatas);
+    renderContainer(getChartDatas(getRoller(die)));
   }
   function bindToInputs(
     onInputChange: (event: Event, faceIndex: number) => void
-  ) {
+  ): void {
     for (let face = 0; face <= 5; face++) {
       const input: HTMLElement = document.getElementById(`face${face}`);
       input.addEventListener("input", event => onInputChange(event, face));

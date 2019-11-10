@@ -1,5 +1,4 @@
-// Дадим пользователю возможность менять параметры
-// Array<number>(6) => chart.js
+// Разделим на функции
 
 interface ChartData {
   type: "bar";
